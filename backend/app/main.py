@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel
 from typing import Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+import os
+import shutil
 from .agent import run_agent_pipeline
 from .db import get_db, ChatSession, ChatMessage
+from .rag import ingest_single_file, TRANSCRIPTS_DIR
 
 app = FastAPI(title="Lenny Growth Assistant API")
 
@@ -112,6 +115,32 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ingest")
+async def ingest_endpoint(file: UploadFile = File(...)):
+    if not file.filename.endswith(('.md', '.txt')):
+        raise HTTPException(status_code=400, detail="Only .md and .txt files are allowed")
+    
+    # Ensure directory exists
+    os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
+    
+    file_path = os.path.join(TRANSCRIPTS_DIR, file.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        chunks_added = ingest_single_file(file_path)
+        
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "chunks_added": chunks_added
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to ingest file: {str(e)}")
 
 @app.get("/health")
 async def health_check():

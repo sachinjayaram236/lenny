@@ -200,12 +200,12 @@ The LLM generates the final response. If this is a brand new chat session, the L
 | 10 | **Feature:** Markdown Rendering across Chat & Artifacts | ✅ Complete |
 | 11 | **Feature:** Artifact Viewer layouts (Preview, Code, Split-Screen) | ✅ Complete |
 | 12 | **Feature:** One-click Copy to Clipboard with fallback support | ✅ Complete |
+| 13 | **Feature:** Admin Ingestion UI (Upload & Index Transcripts via Web) | ✅ Complete |
 
 ---
 
 ## ⚠️ Known Limitations & Next Steps
 
-- **Transcript ingestion** is a manual CLI step — a UI for uploading/re-ingesting would improve DX.
 - **Advanced State Management:** As the app grows, standard React state could be migrated to Zustand or Redux.
 
 ---

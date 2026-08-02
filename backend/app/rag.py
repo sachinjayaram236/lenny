@@ -70,6 +70,29 @@ def ingest_transcripts():
     return vector_db
 
 
+def ingest_single_file(file_path: str) -> int:
+    """Ingests a single transcript file and returns the number of chunks added."""
+    print(f"Loading single transcript file: {file_path}")
+    
+    loader = TextLoader(file_path, encoding="utf-8")
+    docs = loader.load()
+
+    if not docs:
+        print("File was empty.")
+        return 0
+
+    print(f"Loaded 1 document. Chunking...")
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+    chunks = text_splitter.split_documents(docs)
+    print(f"Created {len(chunks)} chunks. Embedding...")
+
+    vector_db = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
+    vector_db.add_documents(chunks)
+    
+    print("Ingestion complete!")
+    return len(chunks)
+
+
 def search_transcripts(query: str, top_k: int = 5):
     vector_db = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
     results = vector_db.similarity_search(query, k=top_k)
