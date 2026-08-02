@@ -2,23 +2,21 @@
 
 import { useState, useEffect } from "react";
 import IngestModal from "./IngestModal";
+import { useChatStore } from "@/store/useChatStore";
 
-type Session = {
-  id: string;
-  title: string;
-  created_at: string;
-};
-
-type SidebarProps = {
-  provider: "openrouter" | "cloud";
-  onProviderChange: (p: "openrouter" | "cloud") => void;
-  activeSessionId: string | null;
-  onSessionSelect: (id: string) => void;
-  refreshTrigger: number;
-};
-
-export default function Sidebar({ provider, onProviderChange, activeSessionId, onSessionSelect, refreshTrigger }: SidebarProps) {
-  const [sessions, setSessions] = useState<Session[]>([]);
+export default function Sidebar() {
+  const {
+    sessions,
+    setSessions,
+    activeSessionId,
+    setActiveSessionId,
+    provider,
+    setProvider,
+    refreshTrigger,
+    addSession,
+    deleteSession,
+    renameSession
+  } = useChatStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [ingestModalOpen, setIngestModalOpen] = useState(false);
@@ -33,8 +31,8 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
       if (res.ok) {
         const data = await res.json();
         setSessions(data);
-        if (data.length > 0 && !activeSessionId) {
-          onSessionSelect(data[0].id);
+        if (data.length > 0 && !useChatStore.getState().activeSessionId) {
+          setActiveSessionId(data[0].id);
         }
       }
     } catch (e) {
@@ -47,8 +45,8 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
       const res = await fetch("/api/sessions", { method: "POST" });
       if (res.ok) {
         const newSession = await res.json();
-        setSessions([newSession, ...sessions]);
-        onSessionSelect(newSession.id);
+        addSession(newSession);
+        setActiveSessionId(newSession.id);
       }
     } catch (e) {
       console.error("Failed to create new chat", e);
@@ -60,10 +58,11 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
     if (!confirm("Delete this chat?")) return;
     try {
       await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-      if (activeSessionId === id) {
-        onSessionSelect("");
+      deleteSession(id);
+      if (useChatStore.getState().activeSessionId === id) {
+        const remaining = useChatStore.getState().sessions;
+        setActiveSessionId(remaining.length > 0 ? remaining[0].id : null);
       }
-      fetchSessions();
     } catch (e) {
       console.error(e);
     }
@@ -84,7 +83,7 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: editTitle }),
       });
-      fetchSessions();
+      renameSession(id, editTitle);
     } catch (e) {
       console.error(e);
     }
@@ -96,13 +95,13 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
       <div className="p-4 flex flex-col gap-4 border-b border-border-color">
         <div className="flex items-center justify-between bg-background p-1 rounded-full border border-border-color">
           <button 
-            onClick={() => onProviderChange("openrouter")}
+            onClick={() => setProvider("openrouter")}
             className={`flex-1 text-xs font-semibold py-1.5 rounded-full transition-colors ${provider === "openrouter" ? "bg-accent text-white shadow-sm" : "text-slate-500 hover:text-foreground"}`}
           >
             Gemma (Free)
           </button>
           <button 
-            onClick={() => onProviderChange("cloud")}
+            onClick={() => setProvider("cloud")}
             className={`flex-1 text-xs font-semibold py-1.5 rounded-full transition-colors ${provider === "cloud" ? "bg-accent text-white shadow-sm" : "text-slate-500 hover:text-foreground"}`}
           >
             Cloud (Claude)
@@ -128,7 +127,7 @@ export default function Sidebar({ provider, onProviderChange, activeSessionId, o
         {sessions.map(s => (
           <div 
             key={s.id}
-            onClick={() => onSessionSelect(s.id)}
+            onClick={() => setActiveSessionId(s.id)}
             className={`group flex items-center justify-between text-sm p-2 rounded-md transition-colors font-medium cursor-pointer ${activeSessionId === s.id ? "bg-accent text-white shadow-sm" : "text-foreground hover:bg-accent-tint"}`}
           >
             {editingId === s.id ? (

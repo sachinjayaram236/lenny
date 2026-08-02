@@ -3,12 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-type ArtifactType = {
-  type: string;
-  title: string;
-  content: string;
-};
+import { useChatStore, ArtifactType } from "@/store/useChatStore";
 
 type Message = {
   role: "user" | "assistant";
@@ -17,14 +12,8 @@ type Message = {
   isLoading?: boolean;
 };
 
-type ChatCanvasProps = {
-  onOpenArtifact: (artifact: ArtifactType, mode?: "Preview" | "Code") => void;
-  provider: "openrouter" | "cloud";
-  activeSessionId: string | null;
-  onChatUpdate?: () => void;
-};
-
-export default function ChatCanvas({ onOpenArtifact, provider, activeSessionId, onChatUpdate }: ChatCanvasProps) {
+export default function ChatCanvas() {
+  const { provider, activeSessionId, setArtifact, triggerRefresh } = useChatStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -118,12 +107,12 @@ export default function ChatCanvas({ onOpenArtifact, provider, activeSessionId, 
         artifact: data.artifact
       }]);
 
-      if (data.session_title && onChatUpdate) {
-        onChatUpdate();
+      if (data.session_title) {
+        triggerRefresh();
       }
 
       if (data.artifact) {
-        onOpenArtifact(data.artifact);
+        setArtifact(data.artifact);
       }
     } catch (error) {
       console.error(error);
@@ -185,13 +174,13 @@ export default function ChatCanvas({ onOpenArtifact, provider, activeSessionId, 
               {msg.artifact && (
                 <div className="mt-4 flex items-center gap-3">
                   <button
-                    onClick={() => onOpenArtifact(msg.artifact!, "Preview")}
+                    onClick={() => setArtifact(msg.artifact!, "Preview")}
                     className="flex items-center gap-2 bg-card border border-accent text-accent px-4 py-2 rounded-lg font-medium hover:bg-accent hover:text-white transition-all shadow-sm hover:shadow-md"
                   >
                     <span className="text-lg">👁️</span> Preview {msg.artifact.title}
                   </button>
                   <button
-                    onClick={() => onOpenArtifact(msg.artifact!, "Code")}
+                    onClick={() => setArtifact(msg.artifact!, "Code")}
                     className="flex items-center gap-2 bg-card border border-border-color text-slate-600 px-4 py-2 rounded-lg font-medium hover:bg-slate-100 transition-all shadow-sm hover:shadow-md"
                   >
                     <span className="text-lg">💻</span> View Code

@@ -3,26 +3,17 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useChatStore } from "@/store/useChatStore";
 
-type ArtifactViewerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  type: "HTML" | "Markdown";
-  title: string;
-  content: string;
-  initialMode?: "Preview" | "Code" | "Split";
-};
-
-export default function ArtifactViewer({ isOpen, onClose, type, title, content, initialMode = "Preview" }: ArtifactViewerProps) {
-  const [mode, setMode] = useState<"Preview" | "Code" | "Split">(initialMode);
+export default function ArtifactViewer() {
+  const { artifact, artifactOpen, artifactMode: mode, setArtifactMode: setMode, setArtifactOpen } = useChatStore();
   const [copied, setCopied] = useState(false);
 
-  // Sync mode when initialMode changes
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode, isOpen]);
+  if (!artifactOpen || !artifact) return null;
 
-  if (!isOpen) return null;
+  const type = artifact.type.toUpperCase() as "HTML" | "Markdown";
+  const title = artifact.title;
+  const content = artifact.content;
 
   const handleCopy = async () => {
     try {
@@ -93,7 +84,7 @@ export default function ArtifactViewer({ isOpen, onClose, type, title, content, 
             )}
           </button>
           <button 
-            onClick={onClose} 
+            onClick={() => setArtifactOpen(false)} 
             className="p-1.5 hover:bg-accent-tint rounded-lg text-slate-400 hover:text-accent transition-colors"
             title="Close viewer"
           >
